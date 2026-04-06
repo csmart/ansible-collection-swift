@@ -1,0 +1,677 @@
+---
+argument_specs:
+  main:
+    short_description: Deploy and manage an OpenStack Swift cluster
+    description:
+      - Deploys and manages OpenStack Swift clusters using Ansible inventory
+        as the source of truth.
+      - Supports PACO (Proxy, Account, Container, Object) nodes, ring building,
+        disk preparation, keepalived VIP failover, TLS termination, and more.
+    options:
+      # ── Execution Control ─────────────────────────────────────────────
+      swift_skip_hosts:
+        description: Skip SSH key setup and host configuration tasks.
+        type: bool
+        default: false
+
+      swift_skip_reboot:
+        description: Skip reboot after package updates.
+        type: bool
+        default: false
+
+      swift_skip_disk_prepare:
+        description: Skip disk formatting and mounting tasks.
+        type: bool
+        default: false
+
+      swift_update:
+        description:
+          - Run system package updates.
+          - Must be defined and set to C(true) to take effect.
+        type: bool
+
+      # ── Network Configuration ─────────────────────────────────────────
+      swift_outward_subnet:
+        description: Routable CIDR subnet for external connections.
+        type: str
+        default: "203.0.113.0/24"
+
+      swift_cluster_subnet:
+        description: Cluster communication CIDR subnet.
+        type: str
+        default: "192.0.2.0/24"
+
+      swift_replication_subnet:
+        description: Replication CIDR subnet.
+        type: str
+        default: "198.51.100.0/24"
+
+      swift_cluster_api_hostname:
+        description: DNS name for the cluster API endpoint.
+        type: str
+        default: "swift.local"
+
+      swift_outward_ip:
+        description: IP address on the outward/external network. Required per node.
+        type: str
+        required: true
+
+      swift_cluster_ip:
+        description: IP address on the cluster/internal network. Required per node.
+        type: str
+        required: true
+
+      swift_replication_ip:
+        description: IP address on the replication network. Required per node.
+        type: str
+        required: true
+
+      swift_vips:
+        description: List of proxy VIP fourth octets. Required on proxy nodes.
+        type: list
+        elements: int
+
+      # ── Hash Configuration ────────────────────────────────────────────
+      swift_hash_suffix:
+        description:
+          - Hash suffix for the cluster.
+          - B(Never change this after initial deployment.)
+        type: str
+        default: "07b4ef9c-2e01-4ea2-a109-5ffc5273225f"
+
+      swift_hash_prefix:
+        description:
+          - Hash prefix for the cluster.
+          - B(Never change this after initial deployment.)
+        type: str
+        default: "f9175259-ace0-48bb-af9d-e7ac505b89d2"
+
+      # ── Service User/Group ────────────────────────────────────────────
+      swift_user:
+        description: Swift system user name.
+        type: str
+        default: "swift"
+
+      swift_group:
+        description: Swift system group name.
+        type: str
+        default: "swift"
+
+      swift_uid:
+        description: Swift system user UID.
+        type: int
+        default: 160
+
+      swift_gid:
+        description: Swift system group GID.
+        type: int
+        default: 160
+
+      # ── Retry Configuration ───────────────────────────────────────────
+      swift_retries:
+        description: Number of retries for package operations.
+        type: int
+        default: 10
+
+      swift_delay:
+        description: Delay in seconds between retries.
+        type: int
+        default: 5
+
+      # ── SELinux ───────────────────────────────────────────────────────
+      swift_selinux_state:
+        description: SELinux enforcement state.
+        type: str
+        default: "permissive"
+        choices:
+          - disabled
+          - permissive
+          - enforcing
+
+      # ── Firewall ──────────────────────────────────────────────────────
+      swift_firewall:
+        description: Whether to configure firewalld rules for Swift services.
+        type: bool
+        default: true
+
+      swift_firewall_zone:
+        description: Firewalld zone for Swift service ports.
+        type: str
+        default: "public"
+
+      # ── Port Configuration ────────────────────────────────────────────
+      swift_proxy_port:
+        description: Proxy server listening port.
+        type: int
+        default: 8080
+
+      swift_account_port:
+        description: Account server listening port.
+        type: int
+        default: 6202
+
+      swift_container_port:
+        description: Container server listening port.
+        type: int
+        default: 6201
+
+      swift_object_port:
+        description: Object server listening port.
+        type: int
+        default: 6200
+
+      swift_memcached_port:
+        description: Memcached listening port.
+        type: int
+        default: 11211
+
+      # ── Worker Configuration ──────────────────────────────────────────
+      swift_proxy_workers:
+        description: Number of proxy server workers. Use C(auto) to detect from CPU count.
+        type: str
+        default: "auto"
+
+      swift_account_workers:
+        description: Number of account server workers. Use C(auto) to detect from CPU count.
+        type: str
+        default: "auto"
+
+      swift_container_workers:
+        description: Number of container server workers. Use C(auto) to detect from CPU count.
+        type: str
+        default: "auto"
+
+      swift_object_workers:
+        description: Number of object server workers. Use C(auto) to detect from CPU count.
+        type: str
+        default: "auto"
+
+      # ── Account Ring Configuration ────────────────────────────────────
+      swift_account_rings:
+        description: List of account ring definitions.
+        type: list
+        elements: dict
+
+      swift_account_rings_part_power:
+        description: Account ring partition power.
+        type: int
+        default: 10
+
+      swift_account_rings_replicas:
+        description: Account ring number of replicas.
+        type: int
+        default: 3
+
+      swift_account_rings_min_part_hours:
+        description: Account ring minimum hours between partition moves.
+        type: int
+        default: 0
+
+      # ── Container Ring Configuration ──────────────────────────────────
+      swift_container_rings:
+        description: List of container ring definitions.
+        type: list
+        elements: dict
+
+      swift_container_rings_part_power:
+        description: Container ring partition power.
+        type: int
+        default: 10
+
+      swift_container_rings_replicas:
+        description: Container ring number of replicas.
+        type: int
+        default: 3
+
+      swift_container_rings_min_part_hours:
+        description: Container ring minimum hours between partition moves.
+        type: int
+        default: 0
+
+      # ── Object Ring Configuration ─────────────────────────────────────
+      swift_object_rings:
+        description: List of object ring definitions.
+        type: list
+        elements: dict
+
+      swift_object_rings_part_power:
+        description: Object ring partition power.
+        type: int
+        default: 17
+
+      swift_object_rings_replicas:
+        description: Object ring number of replicas.
+        type: int
+        default: 3
+
+      swift_object_rings_min_part_hours:
+        description: Object ring minimum hours between partition moves.
+        type: int
+        default: 0
+
+      swift_object_rings_default:
+        description: Whether this is the default storage policy.
+        type: bool
+        default: true
+
+      swift_object_rings_aliases:
+        description: Storage policy alias name.
+        type: str
+        default: "yellow"
+
+      swift_object_rings_policy_type:
+        description: Storage policy type.
+        type: str
+        default: "replication"
+        choices:
+          - replication
+          - erasure_coding
+
+      swift_object_rings_diskfile_module:
+        description: Diskfile module for the storage policy.
+        type: str
+        default: "egg:swift#replication.fs"
+
+      # ── Disk Configuration ────────────────────────────────────────────
+      swift_rings_disks:
+        description:
+          - Disk configuration for ring devices. Required on storage nodes.
+          - Each entry defines a disk device and which rings it belongs to.
+        type: list
+        elements: dict
+
+      # ── SSL/TLS Configuration ─────────────────────────────────────────
+      swift_ssl_cert:
+        description:
+          - SSL certificate in PEM format.
+          - Default contains an example certificate for testing only.
+        type: str
+
+      swift_ssl_key:
+        description:
+          - SSL private key in PEM format.
+          - Default contains an example key for testing only.
+        type: str
+
+      swift_ssl_cacert:
+        description:
+          - CA certificate in PEM format.
+          - Default contains an example CA certificate for testing only.
+        type: str
+
+      swift_ssl_cakey:
+        description:
+          - CA private key in PEM format.
+          - Default contains an example CA key for testing only.
+        type: str
+
+      # ── Hitch Configuration ───────────────────────────────────────────
+      swift_hitch_conf:
+        description: Hitch TLS proxy configuration dictionary.
+        type: dict
+
+      # ── Memcached Configuration ───────────────────────────────────────
+      swift_memcache_conf:
+        description: Memcache client configuration dictionary.
+        type: dict
+
+      swift_memcached_user:
+        description: System user for the memcached service.
+        type: str
+        default: "memcached"
+
+      swift_memcached_maxconn:
+        description: Maximum number of memcached connections.
+        type: int
+        default: 16384
+
+      swift_memcached_cachesize:
+        description: Memcached cache size in megabytes.
+        type: int
+        default: 64
+
+      swift_memcached_queue:
+        description: Memcached backlog queue limit.
+        type: int
+        default: 16384
+
+      # ── Rsync Configuration ───────────────────────────────────────────
+      swift_rsyncd_maxconn:
+        description: Maximum number of simultaneous rsync connections.
+        type: int
+        default: 4
+
+      # ── Package Configuration ─────────────────────────────────────────
+      swift_common_repos:
+        description: List of YUM repository definitions to configure.
+        type: list
+        elements: dict
+
+      swift_common_deps:
+        description: Common dependency packages to install.
+        type: list
+        elements: str
+
+      swift_common_packages:
+        description: Common packages to install on all nodes.
+        type: list
+        elements: str
+
+      swift_custom_deps:
+        description: Additional custom dependency packages to install.
+        type: list
+        elements: str
+        default: []
+
+      swift_repos:
+        description: Additional repositories to enable for Swift packages.
+        type: list
+        elements: str
+        default: []
+
+      swift_deps:
+        description: Additional dependencies for Swift packages.
+        type: list
+        elements: str
+        default: []
+
+      swift_packages:
+        description: Swift service packages to install.
+        type: list
+        elements: str
+
+      # ── Tempauth Configuration ────────────────────────────────────────
+      swift_tempauth:
+        description:
+          - Tempauth middleware configuration.
+          - Defines test accounts and their roles.
+          - Default includes admin and test accounts for development use.
+        type: dict
+
+      # ─�� Dispersion Configuration ──────────────────────────────────────
+      swift_dispersion_conf:
+        description: Swift dispersion report configuration dictionary.
+        type: dict
+
+      # ── Service Configuration Dictionaries ────────────────────────────
+      swift_swift_conf:
+        description: Swift global configuration (swift.conf) dictionary.
+        type: dict
+
+      swift_proxy_server_conf:
+        description: Proxy server configuration dictionary.
+        type: dict
+
+      swift_account_server_conf:
+        description: Account server configuration dictionary.
+        type: dict
+
+      swift_container_server_conf:
+        description: Container server configuration dictionary.
+        type: dict
+
+      swift_object_server_conf:
+        description: Object server configuration dictionary.
+        type: dict
+
+      swift_object_expirer_conf:
+        description: Object expirer configuration dictionary.
+        type: dict
+
+      # ── Proxy Pipeline Filters ────────────────────────────────────────
+      swift_proxy_pipeline:
+        description:
+          - Proxy server middleware pipeline configuration.
+          - Each key is a middleware filter name with a boolean value to
+            enable or disable it.
+        type: dict
+
+      swift_proxy_pipeline_catch_errors:
+        description: Enable catch_errors middleware in proxy pipeline.
+        type: bool
+        default: true
+
+      swift_proxy_pipeline_gatekeeper:
+        description: Enable gatekeeper middleware in proxy pipeline.
+        type: bool
+        default: true
+
+      swift_proxy_pipeline_healthcheck:
+        description: Enable healthcheck middleware in proxy pipeline.
+        type: bool
+        default: true
+
+      swift_proxy_pipeline_cache:
+        description: Enable memcache middleware in proxy pipeline.
+        type: bool
+        default: true
+
+      swift_proxy_pipeline_listing_formats:
+        description: Enable listing_formats middleware in proxy pipeline.
+        type: bool
+        default: true
+
+      swift_proxy_pipeline_container_sync:
+        description: Enable container_sync middleware in proxy pipeline.
+        type: bool
+        default: true
+
+      swift_proxy_pipeline_bulk:
+        description: Enable bulk operations middleware in proxy pipeline.
+        type: bool
+        default: true
+
+      swift_proxy_pipeline_tempurl:
+        description: Enable temporary URL middleware in proxy pipeline.
+        type: bool
+        default: true
+
+      swift_proxy_pipeline_ratelimit:
+        description: Enable rate limiting middleware in proxy pipeline.
+        type: bool
+        default: true
+
+      swift_proxy_pipeline_tempauth:
+        description: Enable tempauth middleware in proxy pipeline.
+        type: bool
+        default: true
+
+      swift_proxy_pipeline_authtoken:
+        description: Enable Keystone authtoken middleware in proxy pipeline.
+        type: bool
+        default: false
+
+      swift_proxy_pipeline_keystoneauth:
+        description: Enable Keystone auth middleware in proxy pipeline.
+        type: bool
+        default: false
+
+      swift_proxy_pipeline_s3api:
+        description: Enable S3 API compatibility middleware in proxy pipeline.
+        type: bool
+        default: false
+
+      swift_proxy_pipeline_s3token:
+        description: Enable S3 token middleware in proxy pipeline.
+        type: bool
+        default: false
+
+      swift_proxy_pipeline_container_quotas:
+        description: Enable container quotas middleware in proxy pipeline.
+        type: bool
+        default: true
+
+      swift_proxy_pipeline_account_quotas:
+        description: Enable account quotas middleware in proxy pipeline.
+        type: bool
+        default: true
+
+      swift_proxy_pipeline_copy:
+        description: Enable server-side copy middleware in proxy pipeline.
+        type: bool
+        default: true
+
+      swift_proxy_pipeline_slo:
+        description: Enable static large object middleware in proxy pipeline.
+        type: bool
+        default: true
+
+      swift_proxy_pipeline_dlo:
+        description: Enable dynamic large object middleware in proxy pipeline.
+        type: bool
+        default: true
+
+      swift_proxy_pipeline_versioned_writes:
+        description: Enable versioned writes middleware in proxy pipeline.
+        type: bool
+        default: true
+
+      swift_proxy_pipeline_symlink:
+        description: Enable symlink middleware in proxy pipeline.
+        type: bool
+        default: true
+
+      swift_proxy_pipeline_encryption:
+        description: Enable at-rest encryption middleware in proxy pipeline.
+        type: bool
+        default: false
+
+      swift_proxy_pipeline_keymaster:
+        description: Enable keymaster middleware in proxy pipeline.
+        type: bool
+        default: false
+
+      swift_proxy_pipeline_proxy_logging:
+        description: Enable proxy logging middleware in proxy pipeline.
+        type: bool
+        default: true
+
+      swift_proxy_pipeline_proxy_server:
+        description: Enable proxy-server application in proxy pipeline.
+        type: bool
+        default: true
+
+      swift_proxy_pipeline_read_only:
+        description: Enable read-only middleware in proxy pipeline.
+        type: bool
+        default: false
+
+      swift_proxy_pipeline_domain_remap:
+        description: Enable domain remap middleware in proxy pipeline.
+        type: bool
+        default: false
+
+      swift_proxy_pipeline_cname_lookup:
+        description: Enable CNAME lookup middleware in proxy pipeline.
+        type: bool
+        default: false
+
+      swift_proxy_pipeline_staticweb:
+        description: Enable static web middleware in proxy pipeline.
+        type: bool
+        default: false
+
+      swift_proxy_pipeline_formpost:
+        description: Enable form POST middleware in proxy pipeline.
+        type: bool
+        default: false
+
+      swift_proxy_pipeline_name_check:
+        description: Enable name check middleware in proxy pipeline.
+        type: bool
+        default: false
+
+      swift_proxy_pipeline_etag_quoter:
+        description: Enable ETag quoter middleware in proxy pipeline.
+        type: bool
+        default: false
+
+      swift_proxy_pipeline_list_endpoints:
+        description: Enable list endpoints middleware in proxy pipeline.
+        type: bool
+        default: false
+
+      swift_proxy_pipeline_xprofile:
+        description: Enable xprofile middleware in proxy pipeline.
+        type: bool
+        default: false
+
+      swift_proxy_pipeline_kms_keymaster:
+        description: Enable KMS keymaster middleware in proxy pipeline.
+        type: bool
+        default: false
+
+      swift_proxy_pipeline_kmip_keymaster:
+        description: Enable KMIP keymaster middleware in proxy pipeline.
+        type: bool
+        default: false
+
+      # ── Account Pipeline Filters ──────────────────────────────────────
+      swift_account_pipeline:
+        description: Account server middleware pipeline configuration.
+        type: dict
+
+      swift_account_pipeline_recon:
+        description: Enable recon middleware in account pipeline.
+        type: bool
+        default: true
+
+      swift_account_pipeline_account_server:
+        description: Enable account-server application in account pipeline.
+        type: bool
+        default: true
+
+      # ── Container Pipeline Filters ────────────────────────────────────
+      swift_container_pipeline:
+        description: Container server middleware pipeline configuration.
+        type: dict
+
+      swift_container_pipeline_recon:
+        description: Enable recon middleware in container pipeline.
+        type: bool
+        default: true
+
+      swift_container_pipeline_container_server:
+        description: Enable container-server application in container pipeline.
+        type: bool
+        default: true
+
+      # ── Object Pipeline Filters ───────────────────────────────────────
+      swift_object_pipeline:
+        description: Object server middleware pipeline configuration.
+        type: dict
+
+      swift_object_pipeline_recon:
+        description: Enable recon middleware in object pipeline.
+        type: bool
+        default: true
+
+      swift_object_pipeline_object_server:
+        description: Enable object-server application in object pipeline.
+        type: bool
+        default: true
+
+      # ── Object Expirer Pipeline Filters ───────────────────────────────
+      swift_object_expirer_pipeline:
+        description: Object expirer middleware pipeline configuration.
+        type: dict
+
+      swift_object_expirer_pipeline_catch_errors:
+        description: Enable catch_errors in object expirer pipeline.
+        type: bool
+        default: true
+
+      swift_object_expirer_pipeline_proxy_logging:
+        description: Enable proxy-logging in object expirer pipeline.
+        type: bool
+        default: true
+
+      swift_object_expirer_pipeline_cache:
+        description: Enable memcache in object expirer pipeline.
+        type: bool
+        default: true
+
+      swift_object_expirer_pipeline_proxy_server:
+        description: Enable proxy-server in object expirer pipeline.
+        type: bool
+        default: true

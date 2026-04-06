@@ -1,0 +1,51 @@
+---
+- name: Ensure EPEL is enabled
+  ansible.builtin.dnf:
+    name:
+      - epel-release
+    state: present
+  become: true
+  register: result_swift_epel_install
+  retries: "{{ swift_retries }}"
+  delay: "{{ swift_delay }}"
+  until: result_swift_epel_install is succeeded
+  when:
+    - "inventory_hostname in groups['swift_proxy']"
+  tags:
+    - prep
+    - hitch
+
+- name: Install hitch
+  ansible.builtin.dnf:
+    name:
+      - hitch
+    state: present
+  become: true
+  register: result_swift_hitch_install
+  retries: "{{ swift_retries }}"
+  delay: "{{ swift_delay }}"
+  until: result_swift_hitch_install is succeeded
+  when:
+    - "inventory_hostname in groups['swift_proxy']"
+  tags:
+    - prep
+    - hitch
+
+- name: Configure hitch
+  ansible.builtin.template:
+    src: hitch_hitch.conf.j2
+    dest: /etc/hitch/hitch.conf
+    owner: root
+    group: root
+    mode: "0644"
+    backup: true
+  become: true
+  notify: "restart hitch server"
+  when:
+    - "inventory_hostname in groups['swift_proxy']"
+  tags:
+    - prep
+    - hitch
+
+- name: Flush handlers
+  ansible.builtin.meta: flush_handlers

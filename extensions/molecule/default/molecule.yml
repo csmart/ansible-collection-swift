@@ -1,0 +1,143 @@
+---
+dependency:
+  name: galaxy
+  options:
+    requirements-file: requirements.yml
+driver:
+  name: podman
+platforms:
+  - name: swift-admin
+    image: quay.io/centos/centos:stream8
+    pre_build_image: true
+    command: /usr/sbin/init
+    privileged: true
+    tmpfs:
+      - /run
+      - /tmp
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:ro
+    groups:
+      - swift
+      - swift_admin
+  - name: swift-01
+    image: quay.io/centos/centos:stream8
+    pre_build_image: true
+    command: /usr/sbin/init
+    privileged: true
+    tmpfs:
+      - /run
+      - /tmp
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:ro
+    groups:
+      - swift
+      - swift_proxy
+      - swift_account
+      - swift_container
+      - swift_object
+  - name: swift-02
+    image: quay.io/centos/centos:stream8
+    pre_build_image: true
+    command: /usr/sbin/init
+    privileged: true
+    tmpfs:
+      - /run
+      - /tmp
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:ro
+    groups:
+      - swift
+      - swift_proxy
+      - swift_account
+      - swift_container
+      - swift_object
+  - name: swift-03
+    image: quay.io/centos/centos:stream8
+    pre_build_image: true
+    command: /usr/sbin/init
+    privileged: true
+    tmpfs:
+      - /run
+      - /tmp
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:ro
+    groups:
+      - swift
+      - swift_proxy
+      - swift_account
+      - swift_container
+      - swift_object
+provisioner:
+  name: ansible
+  config_options:
+    defaults:
+      gathering: explicit
+  inventory:
+    group_vars:
+      swift:
+        ansible_python_interpreter: /usr/libexec/platform-python
+        swift_selinux_state: disabled
+        swift_skip_hosts: true
+        swift_skip_reboot: true
+        swift_skip_disk_prepare: true
+    host_vars:
+      swift-admin:
+        swift_outward_ip: "203.0.113.10"
+        swift_cluster_ip: "192.0.2.10"
+        swift_replication_ip: "198.51.100.10"
+      swift-01:
+        swift_outward_ip: "203.0.113.11"
+        swift_cluster_ip: "192.0.2.11"
+        swift_replication_ip: "198.51.100.11"
+        swift_vips:
+          - 111
+          - 112
+          - 113
+        swift_rings_disks:
+          - disk:
+              device: vdb
+              rings:
+                - name: account
+                  weight: 100
+                - name: container
+                  weight: 100
+                - name: object
+                  weight: 100
+      swift-02:
+        swift_outward_ip: "203.0.113.12"
+        swift_cluster_ip: "192.0.2.12"
+        swift_replication_ip: "198.51.100.12"
+        swift_vips:
+          - 112
+          - 113
+          - 111
+        swift_rings_disks:
+          - disk:
+              device: vdb
+              rings:
+                - name: account
+                  weight: 100
+                - name: container
+                  weight: 100
+                - name: object
+                  weight: 100
+      swift-03:
+        swift_outward_ip: "203.0.113.13"
+        swift_cluster_ip: "192.0.2.13"
+        swift_replication_ip: "198.51.100.13"
+        swift_vips:
+          - 113
+          - 111
+          - 112
+        swift_rings_disks:
+          - disk:
+              device: vdb
+              rings:
+                - name: account
+                  weight: 100
+                - name: container
+                  weight: 100
+                - name: object
+                  weight: 100
+verifier:
+  name: ansible

@@ -1,0 +1,13 @@
+---
+- name: Converge
+  hosts: swift
+  gather_facts: true
+  module_defaults:
+    ansible.builtin.dnf:
+      use_backend: dnf4
+  tasks:
+    - name: Include csmart.swift.swift role
+      ansible.builtin.include_role:
+        name: csmart.swift.swift
+      tags:
+        - config

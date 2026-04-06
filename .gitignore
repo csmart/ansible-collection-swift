@@ -1,1 +1,10 @@
+/.venv/
 /.cache/
+*.tar.gz
+__pycache__/
+*.pyc
+.ansible/
+.claude/
+docs/
+.molecule/
+.tox/

@@ -1,0 +1,8 @@
+---
+- name: Swift Rings Distribute
+  hosts: swift
+  tasks:
+    - name: Distribute Swift rings
+      ansible.builtin.include_role:
+        name: csmart.swift.swift
+        tasks_from: swift-ring-distribute

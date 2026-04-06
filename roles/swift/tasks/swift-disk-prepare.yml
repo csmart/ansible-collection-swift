@@ -1,0 +1,92 @@
+---
+- name: Disk prepare
+  tags:
+    - disks
+    - rings
+  block:
+    - name: Match disk on node to Swift ID
+      ansible.builtin.shell:
+        cmd: set -o pipefail && swift-ring-builder /etc/swift/{{ item }}.builder search --region 1 --zone 1 --ip {{ swift_cluster_ip }} | grep -v Devices | awk '{print $1,$8,$NF}'
+        executable: /bin/bash
+      delegate_to: "{{ groups['swift_admin'][0] }}"
+      become: true
+      become_user: "{{ swift_user }}"
+      register: res_swift_devices
+      changed_when: false
+      when:
+        - "inventory_hostname in groups['swift_account'] or inventory_hostname in groups['swift_container'] or inventory_hostname in groups['swift_object']"
+      loop:
+        - account
+        - container
+        - object
+
+    - name: Gather all disks in a list
+      ansible.builtin.set_fact:
+        swift_disks_list: "{{ (swift_disks_list | default([]) + item.stdout_lines) | unique }}"
+        cacheable: true
+      when:
+        - "inventory_hostname in groups['swift_account'] or inventory_hostname in groups['swift_container'] or inventory_hostname in groups['swift_object']"
+      loop: "{{ res_swift_devices.results }}"
+
+    - name: Ensure directory exists for disks
+      ansible.builtin.file:
+        path: "/srv/node"
+        state: directory
+        owner: "{{ swift_user }}"
+        group: "{{ swift_group }}"
+        mode: "0770"
+      become: true
+      when:
+        - "inventory_hostname in groups['swift_account'] or inventory_hostname in groups['swift_container'] or inventory_hostname in groups['swift_object']"
+
+    - name: Ensure directory exists for each disk
+      ansible.builtin.file:
+        path: "/srv/node/{{ item.split()[1] }}"
+        state: directory
+        owner: "{{ swift_user }}"
+        group: "{{ swift_group }}"
+        mode: "0770"
+      become: true
+      loop: "{{ swift_disks_list }}"
+      when:
+        - "inventory_hostname in groups['swift_account'] or inventory_hostname in groups['swift_container'] or inventory_hostname in groups['swift_object']"
+
+    # format the disk if not already formatted
+    - name: Format disks
+      community.general.filesystem:
+        fstype: xfs
+        force: false
+        dev: "{{ item.split()[2] }}"
+        opts: "-d sunit=512,swidth=512 -L {{ item.split()[1][-12:] }}"
+      become: true
+      loop: "{{ swift_disks_list }}"
+      when:
+        - "inventory_hostname in groups['swift_account'] or inventory_hostname in groups['swift_container'] or inventory_hostname in groups['swift_object']"
+
+    # mount the disk
+    - name: Mount the drives
+      ansible.posix.mount:
+        path: "/srv/node/{{ item.split()[1] }}"
+        src: "LABEL={{ item.split()[1][-12:] }}"
+        fstype: xfs
+        state: mounted
+        opts: "rw,noatime,nodiratime,seclabel,attr2,inode64,logbufs=8,sunit=512,swidth=512,noquota"
+      become: true
+      loop: "{{ swift_disks_list }}"
+      when:
+        - "inventory_hostname in groups['swift_account'] or inventory_hostname in groups['swift_container'] or inventory_hostname in groups['swift_object']"
+
+    - name: Ensure permissions on each disk mount
+      ansible.builtin.file:
+        path: "/srv/node/{{ item.split()[1] }}"
+        state: directory
+        owner: "{{ swift_user }}"
+        group: "{{ swift_group }}"
+        mode: "0770"
+      become: true
+      loop: "{{ swift_disks_list }}"
+      when:
+        - "inventory_hostname in groups['swift_account'] or inventory_hostname in groups['swift_container'] or inventory_hostname in groups['swift_object']"
+
+  # if fail, do we take it out of the ring?
+  # you can push the ring and rebalance

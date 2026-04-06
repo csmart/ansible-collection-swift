@@ -1,0 +1,144 @@
+---
+# common
+- name: Swift common tasks
+  tags:
+    - common
+  block:
+    - name: Include common-selinux tasks
+      ansible.builtin.include_tasks: common-selinux.yml
+      tags:
+        - selinux
+
+    - name: Include common-update tasks
+      ansible.builtin.include_tasks: common-update.yml
+      when:
+        - swift_update is defined
+        - swift_update | bool
+      tags:
+        - update
+
+    - name: Include common-repos tasks
+      ansible.builtin.include_tasks: common-repos.yml
+      tags:
+        - packages
+
+    - name: Include common-packages tasks
+      ansible.builtin.include_tasks: common-packages.yml
+      tags:
+        - packages
+
+# swift-prep
+- name: Swift preparation
+  tags:
+    - prep
+  block:
+    - name: Include swift-hosts tasks
+      ansible.builtin.include_tasks: swift-hosts.yml
+      when: not (swift_skip_hosts | default(false) | bool)
+      tags:
+        - hosts
+    - name: Include swift-system tasks
+      ansible.builtin.include_tasks: swift-system.yml
+      tags:
+        - system
+    - name: Include swift-repos tasks
+      ansible.builtin.include_tasks: swift-repos.yml
+      tags:
+        - packages
+    - name: Include swift-packages tasks
+      ansible.builtin.include_tasks: swift-packages.yml
+      tags:
+        - packages
+    - name: Include common-firewall tasks
+      ansible.builtin.include_tasks: common-firewall.yml
+      when:
+        - swift_firewall is defined
+        - swift_firewall | bool
+      tags:
+        - firewall
+    - name: Include common-logging tasks
+      ansible.builtin.include_tasks: common-logging.yml
+      tags:
+        - logging
+    - name: Include swift-memcached tasks
+      ansible.builtin.include_tasks: swift-memcached.yml
+      tags:
+        - memcached
+    - name: Include swift-rsyncd tasks
+      ansible.builtin.include_tasks: swift-rsyncd.yml
+      tags:
+        - rsyncd
+    - name: Include swift-config tasks
+      ansible.builtin.include_tasks: swift-config.yml
+      tags:
+        - config
+
+# swift-ssl
+- name: Swift SSL proxy
+  tags:
+    - config
+    - prep
+    - ssl
+  block:
+    - name: Include swift-ssl tasks
+      ansible.builtin.include_tasks: swift-ssl.yml
+    - name: Include swift-hitch tasks
+      ansible.builtin.include_tasks: swift-hitch.yml
+
+# swift-rings
+- name: Swift rings
+  tags:
+    - rings
+  block:
+    - name: Include swift-ring-builder tasks
+      ansible.builtin.include_tasks: swift-ring-builder.yml
+    - name: Include swift-ring-rebalance tasks
+      ansible.builtin.include_tasks: swift-ring-rebalance.yml
+
+# swift-disk-prepare
+- name: Include swift-disk-prepare tasks
+  ansible.builtin.include_tasks: swift-disk-prepare.yml
+  when: not (swift_skip_disk_prepare | default(false) | bool)
+  tags:
+    - disks
+    - rings
+
+# swift-rings-distribute
+- name: Include swift-ring-distribute tasks
+  ansible.builtin.include_tasks: swift-ring-distribute.yml
+  when: not (swift_skip_hosts | default(false) | bool)
+  tags:
+    - rings
+
+# swift-configure
+- name: Swift service configuration
+  tags:
+    - config
+    - services
+  block:
+    - name: Include swift-config tasks
+      ansible.builtin.include_tasks: swift-config.yml
+    - name: Include swift-proxy-config tasks
+      ansible.builtin.include_tasks: swift-proxy-config.yml
+      tags:
+        - proxy
+    - name: Include swift-keepalived tasks
+      ansible.builtin.include_tasks: swift-keepalived.yml
+      tags:
+        - keepalived
+    - name: Include swift-account-config tasks
+      ansible.builtin.include_tasks: swift-account-config.yml
+      tags:
+        - account
+    - name: Include swift-container-config tasks
+      ansible.builtin.include_tasks: swift-container-config.yml
+      tags:
+        - container
+    - name: Include swift-object-config tasks
+      ansible.builtin.include_tasks: swift-object-config.yml
+      tags:
+        - object
+    - name: Include swift-dispersion-config tasks
+      ansible.builtin.include_tasks: swift-dispersion-config.yml
+      tags:
+        - dispersion

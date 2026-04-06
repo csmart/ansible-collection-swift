@@ -1,0 +1,28 @@
+---
+# common
+- name: Swift common tasks
+  tags:
+    - common
+  block:
+    - name: Include common-selinux tasks
+      ansible.builtin.include_tasks: common-selinux.yml
+      tags:
+        - selinux
+
+    - name: Include common-update tasks
+      ansible.builtin.include_tasks: common-update.yml
+      when:
+        - swift_update is defined
+        - swift_update | bool
+      tags:
+        - update
+
+    - name: Include common-repos tasks
+      ansible.builtin.include_tasks: common-repos.yml
+      tags:
+        - packages
+
+    - name: Include common-packages tasks
+      ansible.builtin.include_tasks: common-packages.yml
+      tags:
+        - packages

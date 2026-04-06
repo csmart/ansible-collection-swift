@@ -1,0 +1,38 @@
+---
+namespace: csmart
+name: swift
+version: 0.1.0
+readme: README.md
+authors:
+  - Chris Smart (@csmart)
+description: >-
+  Define and manage OpenStack Swift clusters using Ansible inventory as the
+  source of truth. Supports PACO (Proxy, Account, Container, Object) nodes,
+  ring building, disk preparation, keepalived VIP failover, TLS termination,
+  and more.
+license_file: COPYING
+tags:
+  - cloud
+  - infrastructure
+  - object
+  - openstack
+  - storage
+  - swift
+dependencies:
+  ansible.posix: ">=1.5.0"
+  ansible.utils: ">=2.0.0"
+  community.general: ">=7.0.0,<12.0.0"
+  community.crypto: ">=2.0.0,<3.0.0"
+repository: https://github.com/csmart/ansible-role-swift
+issues: https://github.com/csmart/ansible-role-swift/issues
+build_ignore:
+  - .ansible
+  - .claude
+  - .git
+  - .gitignore
+  - docs
+  - extensions
+  - Makefile
+  - scripts
+  - tox.ini
+  - "*.tar.gz"

@@ -1,0 +1,39 @@
+---
+- name: Install dependencies for SELinux module
+  ansible.builtin.dnf:
+    name:
+      - python3-libselinux
+      - python3-libsemanage
+    state: present
+  register: dnf_selinux_result
+  retries: "{{ swift_retries }}"
+  delay: "{{ swift_delay }}"
+  until: dnf_selinux_result is succeeded
+  become: true
+  tags:
+    - common
+    - selinux
+
+- name: Write SELinux config
+  ansible.posix.selinux:
+    policy: targeted
+    state: "{{ swift_selinux_state }}"
+  become: true
+  tags:
+    - common
+    - selinux
+
+- name: SELinux booleans
+  ansible.posix.seboolean:
+    name: "{{ item.name }}"
+    state: "{{ item.state | default('true') }}"
+    persistent: "{{ item.persistent | default('true') }}"
+  become: true
+  loop:
+    - name: rsync_full_access
+      state: true
+      persistent: true
+  when: "swift_selinux_state != 'disabled'"
+  tags:
+    - common
+    - selinux

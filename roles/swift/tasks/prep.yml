@@ -1,0 +1,39 @@
+---
+# swift-prep
+- name: Swift preparation
+  tags:
+    - prep
+  block:
+    - name: Include swift-hosts tasks
+      ansible.builtin.include_tasks: swift-hosts.yml
+      when: not (swift_skip_hosts | default(false) | bool)
+      tags:
+        - hosts
+    - name: Include swift-system tasks
+      ansible.builtin.include_tasks: swift-system.yml
+      tags:
+        - system
+    - name: Include swift-repos tasks
+      ansible.builtin.include_tasks: swift-repos.yml
+      tags:
+        - packages
+    - name: Include swift-packages tasks
+      ansible.builtin.include_tasks: swift-packages.yml
+      tags:
+        - packages
+    - name: Include common-logging tasks
+      ansible.builtin.include_tasks: common-logging.yml
+      tags:
+        - logging
+    - name: Include swift-memcached tasks
+      ansible.builtin.include_tasks: swift-memcached.yml
+      tags:
+        - memcached
+    - name: Include swift-rsyncd tasks
+      ansible.builtin.include_tasks: swift-rsyncd.yml
+      tags:
+        - rsyncd
+    - name: Include swift-config tasks
+      ansible.builtin.include_tasks: swift-config.yml
+      tags:
+        - config

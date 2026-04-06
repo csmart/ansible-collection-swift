@@ -1,0 +1,13 @@
+---
+- name: Swift Rings
+  hosts: swift
+  tasks:
+    - name: Build Swift rings
+      ansible.builtin.include_role:
+        name: csmart.swift.swift
+        tasks_from: swift-ring-builder
+
+    - name: Rebalance Swift rings
+      ansible.builtin.include_role:
+        name: csmart.swift.swift
+        tasks_from: swift-ring-rebalance
