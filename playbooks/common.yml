@@ -1,0 +1,8 @@
+---
+- name: Common
+  hosts: swift
+  tasks:
+    - name: Run common tasks
+      ansible.builtin.include_role:
+        name: csmart.swift.swift
+        tasks_from: common

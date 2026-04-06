@@ -1,0 +1,8 @@
+---
+- name: Swift Proxy Configure
+  hosts: swift
+  tasks:
+    - name: Configure Swift proxy
+      ansible.builtin.include_role:
+        name: csmart.swift.swift
+        tasks_from: swift-proxy-config

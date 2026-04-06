@@ -1,0 +1,8 @@
+---
+- name: Verify
+  hosts: swift
+  gather_facts: false
+  tasks:
+    - name: Verify role was included successfully
+      ansible.builtin.debug:
+        msg: "Role inclusion completed for {{ inventory_hostname }}"

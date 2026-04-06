@@ -1,0 +1,33 @@
+---
+# swift-configure
+- name: Swift service configuration
+  tags:
+    - config
+    - services
+  block:
+    - name: Include swift-config tasks
+      ansible.builtin.include_tasks: swift-config.yml
+    - name: Include swift-proxy-config tasks
+      ansible.builtin.include_tasks: swift-proxy-config.yml
+      tags:
+        - proxy
+    - name: Include swift-keepalived tasks
+      ansible.builtin.include_tasks: swift-keepalived.yml
+      tags:
+        - keepalived
+    - name: Include swift-account-config tasks
+      ansible.builtin.include_tasks: swift-account-config.yml
+      tags:
+        - account
+    - name: Include swift-container-config tasks
+      ansible.builtin.include_tasks: swift-container-config.yml
+      tags:
+        - container
+    - name: Include swift-object-config tasks
+      ansible.builtin.include_tasks: swift-object-config.yml
+      tags:
+        - object
+    - name: Include swift-dispersion-config tasks
+      ansible.builtin.include_tasks: swift-dispersion-config.yml
+      tags:
+        - dispersion

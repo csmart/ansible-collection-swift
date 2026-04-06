@@ -1,0 +1,20 @@
+---
+- name: Prepare
+  hosts: swift
+  become: false
+  gather_facts: false
+  tasks:
+    - name: Fix CentOS Stream 8 repos to use vault # noqa: command-instead-of-module
+      ansible.builtin.shell: |
+        set -euo pipefail
+        sed -i \
+          -e 's|^mirrorlist=|#mirrorlist=|g' \
+          -e 's|^#baseurl=http://mirror.centos.org|baseurl=https://vault.centos.org|g' \
+          /etc/yum.repos.d/CentOS-*.repo
+      args:
+        executable: /bin/bash
+      changed_when: true
+
+    - name: Install sudo and Python DNF bindings # noqa: command-instead-of-module
+      ansible.builtin.shell: dnf install --refresh -y sudo python3-dnf python3-libdnf python3-netaddr selinux-policy selinux-policy-targeted
+      changed_when: true

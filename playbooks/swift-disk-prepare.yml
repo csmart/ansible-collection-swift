@@ -1,0 +1,8 @@
+---
+- name: Swift Disk Prepare
+  hosts: swift
+  tasks:
+    - name: Prepare Swift disks
+      ansible.builtin.include_role:
+        name: csmart.swift.swift
+        tasks_from: swift-disk-prepare

@@ -1,0 +1,8 @@
+---
+- name: Swift Prep
+  hosts: swift
+  tasks:
+    - name: Prepare Swift nodes
+      ansible.builtin.include_role:
+        name: csmart.swift.swift
+        tasks_from: prep

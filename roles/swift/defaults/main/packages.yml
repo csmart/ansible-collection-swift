@@ -1,0 +1,24 @@
+---
+# defaults file for csmart.swift
+swift_common_repos:
+  - name: powertools
+    file: CentOS-Stream-PowerTools
+    description: "CentOS Stream $releasever - PowerTools"
+    baseurl: "https://vault.centos.org/centos/8-stream/PowerTools/$basearch/os/"
+    gpgcheck: 1
+    enabled: 1
+    gpgkey: "file:///etc/pki/rpm-gpg/RPM-GPG-KEY-centosofficial"
+
+swift_common_deps:
+  - centos-release-openstack-wallaby
+
+swift_custom_deps: []
+
+swift_common_packages:
+  - crudini
+  - git
+  - openstack-selinux
+  - python3-openstackclient
+  - tmux
+  - vim
+  - wget

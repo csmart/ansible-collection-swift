@@ -1,0 +1,27 @@
+---
+galaxy_info:
+  role_name: swift
+  namespace: csmart
+  author: Chris Smart
+  description: Deploy and manage an OpenStack Swift cluster with Ansible
+  company: Cloudseed
+
+  license: GPLv3
+
+  min_ansible_version: "2.16"
+  platforms:
+    - name: EL
+      versions:
+        - "8"
+        - "9"
+
+  galaxy_tags:
+    - cloud
+    - infra
+    - infrastructure
+    - object
+    - openstack
+    - storage
+    - swift
+
+dependencies: []

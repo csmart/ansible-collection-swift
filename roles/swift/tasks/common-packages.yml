@@ -1,0 +1,71 @@
+---
+- name: Install custom dependencies
+  ansible.builtin.dnf:
+    name: "{{ swift_custom_deps }}"
+    state: present
+  become: true
+  register: result_swift_custom_deps_install
+  retries: "{{ swift_retries }}"
+  delay: "{{ swift_delay }}"
+  until: result_swift_custom_deps_install is succeeded
+  tags:
+    - common
+    - packages
+
+- name: Install common dependencies
+  ansible.builtin.dnf:
+    name: "{{ swift_common_deps }}"
+    state: present
+  become: true
+  register: result_swift_deps_install
+  retries: "{{ swift_retries }}"
+  delay: "{{ swift_delay }}"
+  until: result_swift_deps_install is succeeded
+  tags:
+    - common
+    - packages
+
+- name: Find CentOS repo files
+  ansible.builtin.find:
+    paths: /etc/yum.repos.d
+    patterns: "CentOS-*.repo"
+  register: centos_repo_files
+  become: true
+  tags:
+    - common
+    - packages
+
+- name: Disable CentOS mirrorlist
+  ansible.builtin.replace:
+    path: "{{ item.path }}"
+    regexp: '^mirrorlist='
+    replace: '#mirrorlist='
+  loop: "{{ centos_repo_files.files }}"
+  become: true
+  tags:
+    - common
+    - packages
+
+- name: Switch CentOS baseurl to vault
+  ansible.builtin.replace:
+    path: "{{ item.path }}"
+    regexp: '^#baseurl=http://mirror.centos.org'
+    replace: 'baseurl=https://vault.centos.org'
+  loop: "{{ centos_repo_files.files }}"
+  become: true
+  tags:
+    - common
+    - packages
+
+- name: Install common packages
+  ansible.builtin.dnf:
+    name: "{{ swift_common_packages }}"
+    state: present
+  become: true
+  register: result_package_install
+  retries: "{{ swift_retries }}"
+  delay: "{{ swift_delay }}"
+  until: result_package_install is succeeded
+  tags:
+    - common
+    - packages

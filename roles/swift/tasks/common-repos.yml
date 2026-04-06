@@ -1,0 +1,65 @@
+---
+- name: Add required repositories
+  ansible.builtin.yum_repository:
+    name: "{{ item.name }}"
+    description: "{{ item.description }}"
+    enabled: "{{ item.enabled | default(1) }}"
+    file: "{{ item.file }}"
+    state: present
+    baseurl: "{{ item.baseurl }}"
+    gpgcheck: "{{ item.gpgcheck }}"
+    gpgkey: "{{ item.gpgkey }}"
+  become: true
+  register: result_swift_repos_enable
+  retries: "{{ swift_retries }}"
+  delay: "{{ swift_delay }}"
+  until: result_swift_repos_enable is succeeded
+  loop: "{{ swift_common_repos }}"
+  tags:
+    - common
+    - packages
+
+- name: Enable EPEL repo
+  ansible.builtin.dnf:
+    name: epel-release
+    state: present
+  become: true
+  register: result_epel_install
+  retries: "{{ swift_retries }}"
+  delay: "{{ swift_delay }}"
+  until: result_epel_install is succeeded
+  tags:
+    - common
+    - packages
+
+- name: Find CentOS repo files
+  ansible.builtin.find:
+    paths: /etc/yum.repos.d
+    patterns: "CentOS-*.repo"
+  register: centos_repo_files
+  become: true
+  tags:
+    - common
+    - packages
+
+- name: Disable CentOS mirrorlist
+  ansible.builtin.replace:
+    path: "{{ item.path }}"
+    regexp: '^mirrorlist='
+    replace: '#mirrorlist='
+  loop: "{{ centos_repo_files.files }}"
+  become: true
+  tags:
+    - common
+    - packages
+
+- name: Switch CentOS baseurl to vault
+  ansible.builtin.replace:
+    path: "{{ item.path }}"
+    regexp: '^#baseurl=http://mirror.centos.org'
+    replace: 'baseurl=https://vault.centos.org'
+  loop: "{{ centos_repo_files.files }}"
+  become: true
+  tags:
+    - common
+    - packages

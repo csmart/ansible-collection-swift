@@ -1,0 +1,8 @@
+---
+- name: Swift Rings Destroy
+  hosts: swift
+  tasks:
+    - name: Destroy Swift rings
+      ansible.builtin.include_role:
+        name: csmart.swift.swift
+        tasks_from: swift-ring-destroy

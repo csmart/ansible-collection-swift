@@ -1,0 +1,57 @@
+---
+- name: Copy SSL cert in place
+  ansible.builtin.copy:
+    content: "{{ swift_ssl_cert }}"
+    dest: /etc/pki/tls/certs/swift.pem
+    owner: root
+    group: root
+    mode: '0644'
+  become: true
+  when:
+    - "inventory_hostname in groups['swift_proxy']"
+  notify: "restart hitch server"
+  tags:
+    - ssl
+    - prep
+    - hitch
+
+- name: Copy SSL key in place
+  ansible.builtin.copy:
+    content: "{{ swift_ssl_key }}"
+    dest: /etc/pki/tls/private/swift.key
+    owner: root
+    group: root
+    mode: '0600'
+  become: true
+  when:
+    - "inventory_hostname in groups['swift_proxy']"
+  notify: "restart hitch server"
+  tags:
+    - ssl
+    - prep
+    - hitch
+
+- name: Copy SSL CA cert
+  ansible.builtin.copy:
+    content: "{{ swift_ssl_cacert }}"
+    dest: /etc/pki/ca-trust/source/anchors/swift-cacert.pem
+    owner: root
+    group: root
+    mode: '0644'
+  become: true
+  when:
+    - swift_ssl_cacert is defined and swift_ssl_cacert
+  tags:
+    - ssl
+    - prep
+    - hitch
+
+- name: Trust SSL CA cert
+  ansible.builtin.command:
+    cmd: update-ca-trust
+  changed_when: false
+  become: true
+  tags:
+    - ssl
+    - prep
+    - hitch

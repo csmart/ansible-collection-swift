@@ -1,0 +1,8 @@
+---
+- name: Swift Object Configure
+  hosts: swift
+  tasks:
+    - name: Configure Swift object services
+      ansible.builtin.include_role:
+        name: csmart.swift.swift
+        tasks_from: swift-object-config

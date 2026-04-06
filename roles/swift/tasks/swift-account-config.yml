@@ -1,0 +1,20 @@
+---
+- name: Configure Swift account service
+  ansible.builtin.template:
+    src: swift-account-server.conf.j2
+    dest: /etc/swift/account-server.conf
+    mode: "0640"
+    owner: "{{ swift_user }}"
+    group: "{{ swift_group }}"
+    backup: true
+  become: true
+  when:
+    - "inventory_hostname in groups['swift_account']"
+  notify: "restart openstack swift account server"
+  tags:
+    - account
+    - config
+    - services
+
+- name: Flush handlers for account config
+  ansible.builtin.meta: flush_handlers

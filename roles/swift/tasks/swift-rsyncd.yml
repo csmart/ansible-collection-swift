@@ -1,0 +1,32 @@
+---
+- name: Install rsync
+  ansible.builtin.dnf:
+    name:
+      - rsync
+      - rsync-daemon
+    state: present
+  become: true
+  register: result_swift_rsync_install
+  retries: "{{ swift_retries }}"
+  delay: "{{ swift_delay }}"
+  until: result_swift_rsync_install is succeeded
+  tags:
+    - prep
+    - rsyncd
+
+- name: Configure rsyncd
+  ansible.builtin.template:
+    src: rsyncd_rsyncd.conf.j2
+    dest: /etc/rsyncd.conf
+    owner: root
+    group: root
+    mode: "0644"
+    backup: true
+  become: true
+  notify: "restart rsync server"
+  tags:
+    - prep
+    - rsyncd
+
+- name: Flush handlers for rsyncd
+  ansible.builtin.meta: flush_handlers
